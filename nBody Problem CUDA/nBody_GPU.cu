@@ -6,55 +6,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-//__global__ void initValues(int *input, int *output, int size){
-//	int idx = threadIdx.x + blockIdx.x * blockDim.x;
-//
-//	if (idx < size) { output[idx] = input[idx] * 2; }
-//}
-//
-//int main(){
-//	const int size = 1000000;
-//	srand(time(NULL));
-//
-//	int blockSize;
-//	int minGridSize;
-//	int gridSize;
-//
-//	int* h_Array = (int*) malloc(size * sizeof(int));
-//	int* h_testArray = (int*)malloc(size * sizeof(int));
-//
-//	int* d_InputArray; cudaMalloc((void**)&d_InputArray, size * sizeof(int));
-//	int* d_OutputArray; cudaMalloc((void**)&d_OutputArray, size * sizeof(int));
-//
-//	//Test
-//	for (int i = 0; i < size; i++){
-//		h_Array[i] = i;
-//		h_testArray[i] = h_Array[i] * 2;
-//	}
-//
-//	cudaMemcpy(d_InputArray, h_Array, size * sizeof(int), cudaMemcpyHostToDevice);
-//
-//	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, initValues, 0, size);
-//
-//	gridSize = (size + blockSize - 1) / blockSize;
-//
-//	initValues <<<gridSize, blockSize >>>(d_InputArray, d_OutputArray, size);
-//
-//	cudaMemcpy(h_Array, d_OutputArray, size*sizeof(int), cudaMemcpyDeviceToHost);
-//
-//	for (int i = 0; i < size; i++){
-//		if (h_Array[i] != h_testArray[i]){
-//			printf("Error at %i ! Host = %i, Device = %i \n", i, h_testArray[i], h_Array[i]);
-//		}
-//	}
-//
-//	int random = rand() % size;
-//	printf("Random Number: %i, Host Value at %i, Device Value at %i \n", random, h_testArray[random], h_Array[random]);
-//
-//	printf("Test Passed \n");
-//
-//}
-
 /*
 Running without arguments is equivalent to 1000 iterations with the
 5 celestial objects declared in the golden_bodies array.
@@ -218,46 +169,30 @@ const type RECIP_DT{ 1.0 / DT };
 * When all advances done, rescale bodies back to obtain correct energy.
 */
 template <typename T>
-void scale_bodies(int nbodies, planet<T> *bodies, T scale) {
-	//GPU
-	for (int i = 0; i < nbodies; ++i) {
-		bodies[i].mass *= scale*scale;
-		bodies[i].vx *= scale;
-		bodies[i].vy *= scale;
-		bodies[i].vz *= scale;
+__global__ void scale_bodies(int nBodies, planet<T> *bodies, T scale){
+
+	int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+	if (idx < nBodies){
+		bodies[idx].mass *= scale * scale;
+		bodies[idx].vx *= scale;
+		bodies[idx].vy *= scale;
+		bodies[idx].vz *= scale;
 	}
 }
 
-//template <typename T>
-//void init_random_bodies(int nbodies, planet<T> *bodies) {
-//
-//	//GPU
-//	for (int i = 0; i < nbodies; ++i) {
-//		bodies[i].x = (T)rand() / RAND_MAX;
-//		bodies[i].y = (T)rand() / RAND_MAX;
-//		bodies[i].z = (T)rand() / RAND_MAX;
-//		bodies[i].vx = (T)rand() / RAND_MAX;
-//		bodies[i].vy = (T)rand() / RAND_MAX;
-//		bodies[i].vz = (T)rand() / RAND_MAX;
-//		bodies[i].mass = (T)rand() / RAND_MAX;
-//	}
-//}
-
 template <typename T>
-__global__ void init_random_bodies(int nBodies, planet<T> *bodies) {
-	int idx = threadIdx.x + blockIdx.x * blockDim.x;
+void init_random_bodies(int nbodies, planet<T> *bodies) {
 
-	curandState state;
-	curand_init((unsigned long long)clock() + idx, 0, 0, &state);
-
-	if (idx < nBodies){
-		bodies[idx].x = curand_uniform_double(&state) + 0.0001;
-		bodies[idx].y = curand_uniform_double(&state) + 0.0001;
-		bodies[idx].z = curand_uniform_double(&state) + 0.0001;
-		bodies[idx].vx = curand_uniform_double(&state) + 0.0001;
-		bodies[idx].vy = curand_uniform_double(&state) + 0.0001;
-		bodies[idx].vz = curand_uniform_double(&state) + 0.0001;
-		bodies[idx].mass = curand_uniform_double(&state) + 0.0001;
+	//GPU
+	for (int i = 0; i < nbodies; ++i) {
+		bodies[i].x = (T)rand() / RAND_MAX;
+		bodies[i].y = (T)rand() / RAND_MAX;
+		bodies[i].z = (T)rand() / RAND_MAX;
+		bodies[i].vx = (T)rand() / RAND_MAX;
+		bodies[i].vy = (T)rand() / RAND_MAX;
+		bodies[i].vz = (T)rand() / RAND_MAX;
+		bodies[i].mass = (T)rand() / RAND_MAX;
 	}
 }
 
@@ -276,29 +211,42 @@ int main(int argc, char ** argv) {
 	}
 	else {
 		bodies = new planet<type>[nbodies];
+		init_random_bodies(nbodies, bodies);
 
-		planet<type> *cudaBodies;
-		cudaMalloc((void**)&cudaBodies, nbodies * sizeof(planet<type>));
+		//planet<type> *cudabodies;
+		//cudamalloc((void**)&cudabodies, nbodies * sizeof(planet<type>));
+		//
+		//cudaoccupancymaxpotentialblocksize(&mingridsize, &blocksize, init_random_bodies<type>, 0, nbodies);
+		//gridsize = (nbodies + blocksize - 1) / blocksize;
+		//init_random_bodies<<<gridsize, blocksize >>>(nbodies, cudabodies);
 
-		cudaMemcpy(cudaBodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
-		cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, init_random_bodies<type>, 0, nbodies);
-		gridSize = (nbodies + blockSize - 1) / blockSize;
-		init_random_bodies<<<gridSize, blockSize >>>(nbodies, cudaBodies);
-
-		cudaMemcpy(bodies, cudaBodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
-
-		//init_random_bodies(nbodies, bodies); //Old Function
+		//cudamemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudamemcpydevicetohost);
+		
  	}
 
 	auto t1 = std::chrono::steady_clock::now();
 	offset_momentum(nbodies, bodies); //GPU
 	type e1 = energy(nbodies, bodies); //GPU
-	scale_bodies(nbodies, bodies, DT);
+
+	planet<type> *cudabodies;
+	cudaMalloc((void**)&cudabodies, nbodies * sizeof(planet<type>));
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
+	gridSize = (nbodies + blockSize - 1) / blockSize;
+	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
+	scale_bodies<<<gridSize, blockSize >>>(nbodies, cudabodies, DT);
+	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
 
 	for (int i = 1; i <= niters; ++i)  {
 		advance(nbodies, bodies);
 	}
-	scale_bodies(nbodies, bodies, RECIP_DT);
+
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
+	gridSize = (nbodies + blockSize - 1) / blockSize;
+	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
+	scale_bodies << <gridSize, blockSize >> >(nbodies, cudabodies, RECIP_DT);
+	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
+
+	//scale_bodies(nbodies, bodies, RECIP_DT);
 
 	type e2 = energy(nbodies, bodies);
 	auto t2 = std::chrono::steady_clock::now();
