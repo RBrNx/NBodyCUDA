@@ -97,16 +97,51 @@ T energy(int nbodies, planet<T> *bodies) {
 	return e;
 }
 
+template<typename T>
+__global__ void cudaOffset_Momentum(int nbodies, planet<T> *bodies)
+{
+	int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+	if (idx < nbodies)
+	{
+		px += bodies[idx].vx * bodies[idx].mass;
+		py += bodies[idx].vy * bodies[idx].mass;
+		pz += bodies[idx].vz * bodies[idx].mass;
+	}
+}
+
 template <typename T>
 void offset_momentum(int nbodies, planet<T> *bodies) {
 	T px = 0.0, py = 0.0, pz = 0.0;
+	T *d_px = 0.0, *d_py = 0.0, *d_pz = 0.0;
+
+	//allocates memory on device for px,py and pz
+	cudaMalloc((void**)&d_px, sizeof(T));
+	cudaMalloc((void**)&d_py, sizeof(T));
+	cudaMalloc((void**)&d_pz, sizeof(T));
+
+	//cudaMemcpy(d_InputArray, h_Array, size * sizeof(int), cudaMemcpyHostToDevice);
+
+	//copies px, py and pz to device
+	cudaMemcpy(d_px, px, sizeof(T), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_py, py, sizeof(T), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_pz, pz, sizeof(T), cudaMemcpyHostToDevice);
+
+	//cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, cudaOffset_Momentum<type>, 0, nbodies);
+	gridSize = (size + blockSize - 1) / blockSize;
+	
+	//scale_bodies << <gridSize, blockSize >> >(nbodies, cudabodies, DT);
+	cudaOffset_Momentum<<<gridSize, blockSize>>>(nbodies, )
+
+	
 
 	//GPU
-	for (int i = 0; i < nbodies; ++i) {
+	/*for (int i = 0; i < nbodies; ++i) {
 		px += bodies[i].vx * bodies[i].mass;
 		py += bodies[i].vy * bodies[i].mass;
 		pz += bodies[i].vz * bodies[i].mass;
-	}
+	}*/
 
 	bodies[0].vx = -px / solar_mass;
 	bodies[0].vy = -py / solar_mass;
@@ -221,7 +256,6 @@ int main(int argc, char ** argv) {
 		//init_random_bodies<<<gridsize, blocksize >>>(nbodies, cudabodies);
 
 		//cudamemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudamemcpydevicetohost);
-		
  	}
 
 	auto t1 = std::chrono::steady_clock::now();
@@ -233,7 +267,7 @@ int main(int argc, char ** argv) {
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
-	scale_bodies<<<gridSize, blockSize >>>(nbodies, cudabodies, DT);
+	scale_bodies<<<gridSize, blockSize>>>(nbodies, cudabodies, DT);
 	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
 
 	for (int i = 1; i <= niters; ++i)  {
@@ -243,7 +277,7 @@ int main(int argc, char ** argv) {
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
-	scale_bodies << <gridSize, blockSize >> >(nbodies, cudabodies, RECIP_DT);
+	scale_bodies<<<gridSize, blockSize >>>(nbodies, cudabodies, RECIP_DT);
 	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
 
 	//scale_bodies(nbodies, bodies, RECIP_DT);
