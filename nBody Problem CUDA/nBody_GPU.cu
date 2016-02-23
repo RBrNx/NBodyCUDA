@@ -98,50 +98,81 @@ T energy(int nbodies, planet<T> *bodies) {
 }
 
 template<typename T>
-__global__ void cudaOffset_Momentum(int nbodies, planet<T> *bodies)
-{
-	int idx = threadIdx.x + blockIdx.x * blockDim.x;
+__device__ void reduceSum(planet<T> *bodies, T *outdata, int size){
+	extern __shared__ T sdata[];
 
-	if (idx < nbodies)
-	{
-		px += bodies[idx].vx * bodies[idx].mass;
-		py += bodies[idx].vy * bodies[idx].mass;
-		pz += bodies[idx].vz * bodies[idx].mass;
+	int tID = threadIdx.x;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i >= 0 && i < size){
+		sdata[tID] = bodies[i].vx * bodies[i].mass;
+		__syncthreads();
+
+		for (int stride = 1; stride < blockDim.x; stride *= 2){
+			if (tID % (2 * s) == 0){
+				sdata[tID] += sdata[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID == 0) outdata[blockIdx.x] = sdata[0];
 	}
+	else if (i >= size && i < size * 2){
+		sdata[tID] = bodies[i].vx * bodies[i].mass;
+		__syncthreads();
+
+		for (int stride = 1; stride < blockDim.x; stride *= 2){
+			if (tID % (2 * s) == 0){
+				sdata[tID] += sdata[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID == size) outdata[blockIdx.x] = sdata[size];
+	}
+	else if (i >= size * 2 && i < size * 3){
+		sdata[tID] = bodies[i].vx * bodies[i].mass;
+		__syncthreads();
+
+		for (int stride = 1; stride < blockDim.x; stride *= 2){
+			if (tID % (2 * s) == 0){
+				sdata[tID] += sdata[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID == size * 2) outdata[blockIdx.x] = sdata[size * 2];
+	}
+
 }
 
 template <typename T>
 void offset_momentum(int nbodies, planet<T> *bodies) {
 	T px = 0.0, py = 0.0, pz = 0.0;
-	T *d_px = 0.0, *d_py = 0.0, *d_pz = 0.0;
+	T *d_reducedArray;
+	T *d_bodies;
+	T h_reducedArray;
 
-	//allocates memory on device for px,py and pz
-	cudaMalloc((void**)&d_px, sizeof(T));
-	cudaMalloc((void**)&d_py, sizeof(T));
-	cudaMalloc((void**)&d_pz, sizeof(T));
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, reduceSum<type>, 0, nbodies);
+	gridSize = (nbodies + blockSize - 1) / blockSize;
 
-	//cudaMemcpy(d_InputArray, h_Array, size * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&d_reducedArray, gridSize);
+	cudaMalloc((void**)&d_bodies, nbodies);
+	h_reducedArray = new T[gridSize];
 
-	//copies px, py and pz to device
-	cudaMemcpy(d_px, px, sizeof(T), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_py, py, sizeof(T), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_pz, pz, sizeof(T), cudaMemcpyHostToDevice);
-
-	//cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
-	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, cudaOffset_Momentum<type>, 0, nbodies);
-	gridSize = (size + blockSize - 1) / blockSize;
+	cudaMemcpy(d_bodies, bodies, gridSize, cudaMemcpyHostToDevice);
 	
-	//scale_bodies << <gridSize, blockSize >> >(nbodies, cudabodies, DT);
-	cudaOffset_Momentum<<<gridSize, blockSize>>>(nbodies, )
+	reduceSum << <gridSize, blockSize >> >(bodies, d_reducedArray, nbodies);
 
-	
+	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize, cudaMemcpyDeviceToHost);
 
-	//GPU
-	/*for (int i = 0; i < nbodies; ++i) {
-		px += bodies[i].vx * bodies[i].mass;
-		py += bodies[i].vy * bodies[i].mass;
-		pz += bodies[i].vz * bodies[i].mass;
-	}*/
+	for (int i = 1; i < gridSize/3; i++){
+		h_reducedArray[0] += h_reducedArray[i];
+		h_reducedArray[gridSize / 3] += h_reducedArray[gridSize / 3 + i];
+		h_reducedArray[gridSize / 3 * 2] += h_reducedArray[gridSize / 3 * 2 + i];
+	}
+
+	px = _reducedArray[0]; py = h_reducedArray[gridSize / 3]; pz = h_reducedArray[gridSize / 3 * 2];
 
 	bodies[0].vx = -px / solar_mass;
 	bodies[0].vy = -py / solar_mass;
