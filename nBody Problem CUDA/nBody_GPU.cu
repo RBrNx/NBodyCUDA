@@ -98,18 +98,18 @@ T energy(int nbodies, planet<T> *bodies) {
 }
 
 template<typename T>
-__device__ void reduceSum(planet<T> *bodies, T *outdata, int size){
+__global__ void reduceSum(planet<T> *bodies, T *outdata, int size){
 	extern __shared__ T sdata[];
 
 	int tID = threadIdx.x;
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
 
 	if (i >= 0 && i < size){
 		sdata[tID] = bodies[i].vx * bodies[i].mass;
 		__syncthreads();
 
 		for (int stride = 1; stride < blockDim.x; stride *= 2){
-			if (tID % (2 * s) == 0){
+			if (tID % (2 * stride) == 0){
 				sdata[tID] += sdata[tID + stride];
 			}
 			__syncthreads();
@@ -122,7 +122,7 @@ __device__ void reduceSum(planet<T> *bodies, T *outdata, int size){
 		__syncthreads();
 
 		for (int stride = 1; stride < blockDim.x; stride *= 2){
-			if (tID % (2 * s) == 0){
+			if (tID % (2 * stride) == 0){
 				sdata[tID] += sdata[tID + stride];
 			}
 			__syncthreads();
@@ -135,7 +135,7 @@ __device__ void reduceSum(planet<T> *bodies, T *outdata, int size){
 		__syncthreads();
 
 		for (int stride = 1; stride < blockDim.x; stride *= 2){
-			if (tID % (2 * s) == 0){
+			if (tID % (2 * stride) == 0){
 				sdata[tID] += sdata[tID + stride];
 			}
 			__syncthreads();
@@ -150,19 +150,19 @@ template <typename T>
 void offset_momentum(int nbodies, planet<T> *bodies) {
 	T px = 0.0, py = 0.0, pz = 0.0;
 	T *d_reducedArray;
-	T *d_bodies;
-	T h_reducedArray;
+	planet<T> *d_bodies;
+	T *h_reducedArray;
 
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, reduceSum<type>, 0, nbodies);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 
-	cudaMalloc((void**)&d_reducedArray, gridSize);
-	cudaMalloc((void**)&d_bodies, nbodies);
+	cudaMalloc((void**)&d_reducedArray, gridSize * sizeof(T));
+	cudaMalloc((void**)&d_bodies, nbodies * sizeof(planet<T>));
 	h_reducedArray = new T[gridSize];
 
-	cudaMemcpy(d_bodies, bodies, gridSize, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_bodies, bodies, nbodies * sizeof(planet<T>), cudaMemcpyHostToDevice);
 	
-	reduceSum << <gridSize, blockSize >> >(bodies, d_reducedArray, nbodies);
+	reduceSum << <gridSize, blockSize, nbodies*3 >> >(d_bodies, d_reducedArray, nbodies);
 
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize, cudaMemcpyDeviceToHost);
 
@@ -172,7 +172,7 @@ void offset_momentum(int nbodies, planet<T> *bodies) {
 		h_reducedArray[gridSize / 3 * 2] += h_reducedArray[gridSize / 3 * 2 + i];
 	}
 
-	px = _reducedArray[0]; py = h_reducedArray[gridSize / 3]; pz = h_reducedArray[gridSize / 3 * 2];
+	px = h_reducedArray[0]; py = h_reducedArray[gridSize / 3]; pz = h_reducedArray[gridSize / 3 * 2];
 
 	bodies[0].vx = -px / solar_mass;
 	bodies[0].vy = -py / solar_mass;
