@@ -110,28 +110,76 @@ __device__ void warpReduce(volatile int *sdata, unsigned int tID)
 }
 
 //template<typename T>
-__global__ void reduceSum(int *input, int *input2, int *input3, int *outdata, int size){
+__global__ void reduceSum(int *input, int *outdata, int size, int testNum){
 	extern __shared__ int sdata[];
 
-	unsigned int tID = threadIdx.x;
-	unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
-	sdata[tID] = input[i] + input[i + blockDim.x];
-	__syncthreads();
-
-	for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-	{
-		if (tID < stride)
-		{
-			sdata[tID] += sdata[tID + stride];
-		}
+	if (testNum == 1){
+		unsigned int tID = threadIdx.x;
+		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
+		sdata[tID] = input[i] + input[i + blockDim.x];
 		__syncthreads();
-	}
-	
-	if (tID < 32){ warpReduce(sdata, tID); }
 
-	if (tID == 0)
-	{
-		outdata[blockIdx.x] = sdata[0];
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		{
+			if (tID < stride)
+			{
+				sdata[tID] += sdata[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID < 32){ warpReduce(sdata, tID); }
+
+		if (tID == 0)
+		{
+			outdata[blockIdx.x] = sdata[0];
+		}
+	}
+
+	if (testNum == 2){
+		unsigned int tID = threadIdx.x;
+		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
+		sdata[tID] = input[i] + input[i + blockDim.x];
+		__syncthreads();
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		{
+			if (tID < stride)
+			{
+				sdata[tID] += sdata[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID < 32){ warpReduce(sdata, tID); }
+
+		if (tID == 0)
+		{
+			outdata[blockIdx.x] = sdata[0];
+		}
+	}
+
+	if (testNum == 3){
+		unsigned int tID = threadIdx.x;
+		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
+		sdata[tID] = input[i] + input[i + blockDim.x];
+		__syncthreads();
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		{
+			if (tID < stride)
+			{
+				sdata[tID] += sdata[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID < 32){ warpReduce(sdata, tID); }
+
+		if (tID == 0)
+		{
+			outdata[blockIdx.x] = sdata[0];
+		}
 	}
 }
 
@@ -146,46 +194,48 @@ void offset_momentum(int nbodies, planet<T> *bodies) {
 	std::fill_n(test, 1000, 1);
 	int *d_test;
 
-	int test2[1000];
-	std::fill_n(test2, 1000, 2);
-	int *d_test2;
-
-	int test3[1000];
-	std::fill_n(test3, 1000, 3);
-	int *d_test3;
-
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, reduceSum, 0, 256);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 
 	cudaMalloc((void**)&d_reducedArray, gridSize * sizeof(int));
 	//cudaMalloc((void**)&d_bodies, nbodies * sizeof(planet<T>));
 	cudaMalloc((void**)&d_test, 1000 * sizeof(int));
-	cudaMalloc((void**)&d_test2, 1000 * sizeof(int));
-	cudaMalloc((void**)&d_test3, 1000 * sizeof(int));
 
 	h_reducedArray = new int[gridSize];
 
 	//cudaMemcpy(d_bodies, bodies, nbodies * sizeof(planet<T>), cudaMemcpyHostToDevice);
 	cudaMemcpy(d_test, test, 1000 * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_test2, test2, 1000 * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_test3, test3, 1000 * sizeof(int), cudaMemcpyHostToDevice);
-	
-	//reduceSum << <gridSize, blockSize, nbodies*3 >> >(d_bodies, d_reducedArray, nbodies);
-	reduceSum<<<gridSize, blockSize, 3000 * sizeof(int) >>>(d_test, d_test2, d_test3, d_reducedArray, nbodies);
-
+	reduceSum << <gridSize, blockSize, 1000 * sizeof(int) >> >(d_test, d_reducedArray, nbodies, 1);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(int), cudaMemcpyDeviceToHost);
 
-	/*for (int i = 1; i < gridSize/3; i++){
-		h_reducedArray[0] += h_reducedArray[i];
-		h_reducedArray[gridSize / 3] += h_reducedArray[gridSize / 3 + i];
-		h_reducedArray[gridSize / 3 * 2] += h_reducedArray[gridSize / 3 * 2 + i];
-	}*/
-	 
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
 	}
 
-	px = h_reducedArray[0]; //py = h_reducedArray[gridSize / 3]; pz = h_reducedArray[gridSize / 3 * 2];
+	px = h_reducedArray[0];
+
+	std::fill_n(test, 1000, 2);
+	cudaMemcpy(d_test, test, 1000 * sizeof(int), cudaMemcpyHostToDevice);
+	reduceSum << <gridSize, blockSize, 1000 * sizeof(int) >> >(d_test, d_reducedArray, nbodies, 2);
+	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+	for (int i = 1; i < gridSize; i++){
+		h_reducedArray[0] += h_reducedArray[i];
+	}
+
+	py = h_reducedArray[0];
+
+	std::fill_n(test, 1000, 3);
+	cudaMemcpy(d_test, test, 1000 * sizeof(int), cudaMemcpyHostToDevice);
+	reduceSum << <gridSize, blockSize, 1000 * sizeof(int) >> >(d_test, d_reducedArray, nbodies, 3);
+	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+	for (int i = 1; i < gridSize; i++){
+		h_reducedArray[0] += h_reducedArray[i];
+	}
+
+	pz = h_reducedArray[0];
+
 
 	bodies[0].vx = -px / solar_mass;
 	bodies[0].vy = -py / solar_mass;
