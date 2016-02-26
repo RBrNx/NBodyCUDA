@@ -116,46 +116,30 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 	if (arrayIdent == 1){
 		unsigned int tID = threadIdx.x;
 		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
+
 		if (tID < nbodies && (i + blockDim.x) < nbodies){
 			sdata[tID] = (bodies[i].vx * bodies[i].mass) + (bodies[i + blockDim.x].vx * bodies[i + blockDim.x].mass);
-			__syncthreads();
-
-			for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-			{
-				if (tID < stride)
-				{
-					sdata[tID] += sdata[tID + stride];
-				}
-				__syncthreads();
-			}
-
-			if (tID < 32){ warpReduce(sdata, tID); }
-
-			if (tID == 0)
-			{
-				outdata[blockIdx.x] = sdata[0];
-			}
 		}
-		else
+		else{
+			sdata[tID] = (bodies[i].vx * bodies[i].mass);
+		}
+
+		__syncthreads();
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
 		{
-			sdata[tID] = bodies[i].vx * bodies[i].mass;
+			if (tID < stride)
+			{
+				sdata[tID] += sdata[tID + stride];
+			}
 			__syncthreads();
+		}
 
-			for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-			{
-				if (tID < stride)
-				{
-					sdata[tID] += sdata[tID + stride];
-				}
-				__syncthreads();
-			}
+		if (tID < 32){ warpReduce(sdata, tID); }
 
-			if (tID < 32){ warpReduce(sdata, tID); }
-
-			if (tID == 0)
-			{
-				outdata[blockIdx.x] = sdata[0];
-			}
+		if (tID == 0)
+		{
+			outdata[blockIdx.x] = sdata[0];
 		}
 	}
 
@@ -164,44 +148,26 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
 		if (tID < nbodies && (i + blockDim.x) < nbodies){
 			sdata[tID] = (bodies[i].vy * bodies[i].mass) + (bodies[i + blockDim.x].vy * bodies[i + blockDim.x].mass);
-			__syncthreads();
-
-			for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-			{
-				if (tID < stride)
-				{
-					sdata[tID] += sdata[tID + stride];
-				}
-				__syncthreads();
-			}
-
-			if (tID < 32){ warpReduce(sdata, tID); }
-
-			if (tID == 0)
-			{
-				outdata[blockIdx.x] = sdata[0];
-			}
 		}
-		else
+		else{
+			sdata[tID] = (bodies[i].vy * bodies[i].mass);
+		}
+		__syncthreads();
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
 		{
-			sdata[tID] = bodies[i].vx * bodies[i].mass;
+			if (tID < stride)
+			{
+				sdata[tID] += sdata[tID + stride];
+			}
 			__syncthreads();
+		}
 
-			for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-			{
-				if (tID < stride)
-				{
-					sdata[tID] += sdata[tID + stride];
-				}
-				__syncthreads();
-			}
+		if (tID < 32){ warpReduce(sdata, tID); }
 
-			if (tID < 32){ warpReduce(sdata, tID); }
-
-			if (tID == 0)
-			{
-				outdata[blockIdx.x] = sdata[0];
-			}
+		if (tID == 0)
+		{
+			outdata[blockIdx.x] = sdata[0];
 		}
 	}
 
@@ -210,44 +176,26 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
 		if (tID < nbodies && (i + blockDim.x) < nbodies){
 			sdata[tID] = (bodies[i].vz * bodies[i].mass) + (bodies[i + blockDim.x].vz * bodies[i + blockDim.x].mass);
-			__syncthreads();
-
-			for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-			{
-				if (tID < stride)
-				{
-					sdata[tID] += sdata[tID + stride];
-				}
-				__syncthreads();
-			}
-
-			if (tID < 32){ warpReduce(sdata, tID); }
-
-			if (tID == 0)
-			{
-				outdata[blockIdx.x] = sdata[0];
-			}
 		}
-		else
+		else{
+			sdata[tID] = (bodies[i].vz * bodies[i].mass);
+		}
+		__syncthreads();
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
 		{
-			sdata[tID] = bodies[i].vx * bodies[i].mass;
+			if (tID < stride)
+			{
+				sdata[tID] += sdata[tID + stride];
+			}
 			__syncthreads();
+		}
 
-			for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-			{
-				if (tID < stride)
-				{
-					sdata[tID] += sdata[tID + stride];
-				}
-				__syncthreads();
-			}
+		if (tID < 32){ warpReduce(sdata, tID); }
 
-			if (tID < 32){ warpReduce(sdata, tID); }
-
-			if (tID == 0)
-			{
-				outdata[blockIdx.x] = sdata[0];
-			}
+		if (tID == 0)
+		{
+			outdata[blockIdx.x] = sdata[0];
 		}
 	}
 }
@@ -259,12 +207,12 @@ void offset_momentum(int nbodies, planet<T> *bodies) {
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, reduceSum<type>, 0, nbodies);
 	gridSize = ((nbodies + blockSize - 1) / blockSize);
 
-	//if (gridSize > 1){
-	//	gridSize / 2;
-	//}
-	//else{
-	//	blockSize / 2;
-	//}
+	if (gridSize > 1){
+		gridSize = (int)ceil( (float)gridSize / 2);
+	}
+	else{
+		blockSize = (int)ceil( (float)blockSize / 2);
+	}
 
 	T *d_reducedArray; cudaMalloc((void**)&d_reducedArray, gridSize * sizeof(T));
 	T *h_reducedArray; h_reducedArray = new T[gridSize];
