@@ -78,6 +78,63 @@ void advance(int nbodies, planet<T> *bodies)
 }
 
 template <typename T>
+__device__ void eReduction(volatile T *e, unsigned int tIDx, unsigned int tIDy, int nbodies, char oper, T *outData)
+{
+	int tID = tIDy * nbodies + tIDx;
+
+	if (oper == '+'){
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		{
+			if (tID < stride)
+			{
+				e[tID] += e[tID + stride];
+			}
+			__syncthreads();
+		}
+
+		if (tID < 32){ warpReduce(e, tID); }
+
+		if (tID == 0)
+		{
+			outData[blockIdx.x] = e[0];
+		}
+	}
+}
+
+template <typename T>
+__global__ void energy(int nbodies, planet<T> *bodies)
+{
+	extern __shared__ T e[];
+
+	T outData = new T[gridSize];
+
+	unsigned int tIDx = threadIdx.x;
+	unsigned int tIDy = threadIdx.y;
+
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (x < nbodies || y < nbodies)
+	{
+		planet<T> &b = bodies[y];
+		e[tIDy * bodies + tIDx] = 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+		__syncthreads();
+
+
+
+		planet<T> &b2 = bodies[x];
+		T dx = b.x - b2.x;
+		T dy = b.y - b2.y;
+		T dz = b.z - b2.z;
+		T distance = sqrt(dx * dx + dy * dy + dz * dz);
+		e[tIDy * nbodies + tIDx] = (b.mass * b2.mass) / distance;
+		__syncthreads();
+	}
+}
+
+
+template <typename T>
 T energy(int nbodies, planet<T> *bodies) {
 	T e = 0.0;
 
@@ -133,6 +190,8 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 				sdata[tID] += sdata[tID + stride];
 			}
 			__syncthreads();
+
+
 		}
 
 		if (tID < 32){ warpReduce(sdata, tID); }
@@ -318,7 +377,6 @@ __global__ void scale_bodies(int nBodies, planet<T> *bodies, T scale){
 template <typename T>
 void init_random_bodies(int nbodies, planet<T> *bodies) {
 
-	//GPU
 	for (int i = 0; i < nbodies; ++i) {
 		bodies[i].x = (T)rand() / RAND_MAX;
 		bodies[i].y = (T)rand() / RAND_MAX;
