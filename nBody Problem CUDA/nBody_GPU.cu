@@ -77,30 +77,30 @@ void advance(int nbodies, planet<T> *bodies)
 	}
 }
 
-template <typename T>
-__device__ void eReduction(volatile T *e, unsigned int tIDx, unsigned int tIDy, int nbodies, char oper, T *outData)
-{
-	int tID = tIDy * nbodies + tIDx;
-
-	if (oper == '+'){
-
-		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-		{
-			if (tID < stride)
-			{
-				e[tID] += e[tID + stride];
-			}
-			__syncthreads();
-		}
-
-		if (tID < 32){ warpReduce(e, tID); }
-
-		if (tID == 0)
-		{
-			outData[blockIdx.x] = e[0];
-		}
-	}
-}
+//template <typename T>
+//__device__ void eReduction(volatile T *e, unsigned int tIDx, unsigned int tIDy, int nbodies, char oper, T *outData)
+//{
+//	int tID = tIDy * nbodies + tIDx;
+//
+//	if (oper == '+'){
+//
+//		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+//		{
+//			if (tID < stride)
+//			{
+//				e[tID] += e[tID + stride];
+//			}
+//			__syncthreads();
+//		}
+//
+//		if (tID < 32){ warpReduce(e, tID); }
+//
+//		if (tID == 0)
+//		{
+//			outData[blockIdx.x] = e[0];
+//		}
+//	}
+//}
 
 /*template <typename T>
 __global__ void energy(int nbodies, planet<T> *bodies)
@@ -134,35 +134,132 @@ __global__ void energy(int nbodies, planet<T> *bodies)
 	}
 }*/
 
-/*__global__ void energy(int nbodies, int *addReduc, int *subReduc, int *inData){
+template<typename T>
+__device__ void warpReduce(volatile T *sdata, unsigned int tID)
+{
+	sdata[tID] += sdata[tID + 32];
+	sdata[tID] += sdata[tID + 16];
+	sdata[tID] += sdata[tID + 8];
+	sdata[tID] += sdata[tID + 4];
+	sdata[tID] += sdata[tID + 2];
+	sdata[tID] += sdata[tID + 1];
+}
+
+__global__ void energyKernel(int nbodies, int *addReduc, int *subReduc, int *inData, int *inData2){
 	extern __shared__ int e[];
 
-	unsigned int tIDx = threadIdx.x;
-	unsigned int tIDy = threadIdx.y;
-	unsigned int tID = tIDy * nbodies + tIDx;
+	unsigned int tID = threadIdx.x;
+	unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
 
-	int y = blockIdx.y * (blockDim.y * 2) + threadIdx.y;
-	int x = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
+	if (tID < nbodies && (i + blockDim.x) < nbodies){
+		e[tID] = inData[i] + inData[i + blockDim.x];
+	}
+	else{
+		e[tID] = inData[i];
+	}
 
-	if (x < nbodies && y < nbodies){
-		e[tID] = inData[y * nbodies + x] + inData[(y * nbodies + x) + blockDim.x];
+	__syncthreads();
+
+	for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+	{
+		if (tID < stride)
+		{
+			e[tID] += e[tID + stride];
+		}
 		__syncthreads();
 
-		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-		{
-			if (tID < stride)
-			{
-				e[tID] += e[tID + stride];
-			}
-			__syncthreads();
 
-
-		}
 	}
-}*/
 
+	if (tID < 32){ warpReduce(e, tID); }
+
+	if (tID == 0)
+	{
+		addReduc[blockIdx.x] = e[0];
+	}
+
+	//------------------------------------------------
+
+	/*if (tID < nbodies-1000 && (i + blockDim.x) < nbodies-1000){
+		e[tID] = inData2[i] + inData2[i + blockDim.x];
+	}
+	else{
+		e[tID] = inData2[i];
+	}
+
+	__syncthreads();
+
+	for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+	{
+		if (tID < stride)
+		{
+			e[tID] += e[tID + stride];
+		}
+		__syncthreads();
+
+
+	}
+
+	if (tID < 32){ warpReduce(e, tID); }
+
+	if (tID == 0)
+	{
+		subReduc[blockIdx.x] = e[0];
+		int m = 3;
+	}*/
+}
 
 template <typename T>
+T energy(int nbodies, planet<T> *bodies)
+{
+	int test[3000];
+	std::fill_n(test, 3000, 1);
+	int *d_test;
+
+	int test2[2000];
+	std::fill_n(test2, 2000, 1);
+	int *d_test2;
+
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, energyKernel, 0, 3000);
+	gridSize = (3000 + blockSize - 1) / blockSize;
+
+	if (gridSize > 1){
+		gridSize = (int)ceil((float)gridSize / 2);
+	}
+	else{
+		blockSize = (int)ceil((float)blockSize / 2);
+	}
+
+	int *h_addArray = new int[gridSize];
+	int *h_subArray = new int[gridSize];
+
+	int *d_addArray; cudaMalloc((void**)&d_addArray, gridSize * sizeof(int));
+	int *d_subArray; cudaMalloc((void**)&d_subArray, gridSize * sizeof(int));
+
+	cudaMalloc((void**)&d_test, 3000 * sizeof(int));
+	cudaMalloc((void**)&d_test2, 2000 * sizeof(int));
+
+	cudaMemcpy(d_test, test, 3000 * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_test2, test2, 2000 * sizeof(int), cudaMemcpyHostToDevice);
+
+	energyKernel << <gridSize, blockSize, 3000 * sizeof(int) >> >(3000, d_addArray, d_subArray, d_test, d_test2);
+
+	cudaMemcpy(h_addArray, d_addArray, 3000 * sizeof(int), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(h_subArray, d_subArray, 2000 * sizeof(int), cudaMemcpyDeviceToHost);
+
+	for (int i = 0; i < gridSize; i++)
+	{
+		h_addArray[0] += h_addArray[i];
+		//h_subArray[0] += h_subArray[i];
+	}
+
+	//int finalValue = h_addArray[0] - h_subArray[0];
+	int m = 3;
+	return NULL;
+}
+
+
+/*template <typename T>
 T energy(int nbodies, planet<T> *bodies) {
 	T e = 0.0;
 
@@ -183,18 +280,7 @@ T energy(int nbodies, planet<T> *bodies) {
 	return e;
 
 
-}
-
-template<typename T>
-__device__ void warpReduce(volatile T *sdata, unsigned int tID)
-{
-	sdata[tID] += sdata[tID + 32];
-	sdata[tID] += sdata[tID + 16];
-	sdata[tID] += sdata[tID + 8];
-	sdata[tID] += sdata[tID + 4];
-	sdata[tID] += sdata[tID + 2];
-	sdata[tID] += sdata[tID + 1];
-}
+}*/
 
 template<typename T>
 __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbodies){
