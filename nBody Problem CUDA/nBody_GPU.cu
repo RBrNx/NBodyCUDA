@@ -102,7 +102,7 @@ __device__ void eReduction(volatile T *e, unsigned int tIDx, unsigned int tIDy, 
 	}
 }
 
-template <typename T>
+/*template <typename T>
 __global__ void energy(int nbodies, planet<T> *bodies)
 {
 	extern __shared__ T e[];
@@ -111,14 +111,15 @@ __global__ void energy(int nbodies, planet<T> *bodies)
 
 	unsigned int tIDx = threadIdx.x;
 	unsigned int tIDy = threadIdx.y;
+	unsigned int tID = tIDy * bodies + tIDx;
 
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (x < nbodies || y < nbodies)
+	if (x < nbodies && y < nbodies)
 	{
 		planet<T> &b = bodies[y];
-		e[tIDy * bodies + tIDx] = 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+		e[tID] = (0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)) + ;
 		__syncthreads();
 
 
@@ -131,7 +132,34 @@ __global__ void energy(int nbodies, planet<T> *bodies)
 		e[tIDy * nbodies + tIDx] = (b.mass * b2.mass) / distance;
 		__syncthreads();
 	}
-}
+}*/
+
+/*__global__ void energy(int nbodies, int *addReduc, int *subReduc, int *inData){
+	extern __shared__ int e[];
+
+	unsigned int tIDx = threadIdx.x;
+	unsigned int tIDy = threadIdx.y;
+	unsigned int tID = tIDy * nbodies + tIDx;
+
+	int y = blockIdx.y * (blockDim.y * 2) + threadIdx.y;
+	int x = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
+
+	if (x < nbodies && y < nbodies){
+		e[tID] = inData[y * nbodies + x] + inData[(y * nbodies + x) + blockDim.x];
+		__syncthreads();
+
+		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		{
+			if (tID < stride)
+			{
+				e[tID] += e[tID + stride];
+			}
+			__syncthreads();
+
+
+		}
+	}
+}*/
 
 
 template <typename T>
@@ -153,6 +181,8 @@ T energy(int nbodies, planet<T> *bodies) {
 		}
 	}
 	return e;
+
+
 }
 
 template<typename T>
