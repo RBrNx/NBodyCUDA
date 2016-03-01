@@ -65,21 +65,24 @@
 //template <typename T>
 //T energy(int nbodies, planet<T> *bodies) {
 //	T e = 0.0;
-//	
-//	//GPU
-//	for (int i = 0; i < nbodies; ++i) {
-//		planet<T> &b = bodies[i];
-//		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-//		
-//		for (int j = i + 1; j < nbodies; j++) {
-//			planet<T> &b2 = bodies[j];
-//			T dx = b.x - b2.x;
-//			T dy = b.y - b2.y;
-//			T dz = b.z - b2.z;
-//			T distance = sqrt(dx * dx + dy * dy + dz * dz);
-//			e -= (b.mass * b2.mass) / distance;
-//		}
-//	}
+//	//
+//	////GPU
+//	//for (int i = 0; i < nbodies; ++i) {
+//	//	planet<T> &b = bodies[i];
+//	//	e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+//	//	
+//	//	for (int j = i + 1; j < nbodies; j++) {
+//	//		planet<T> &b2 = bodies[j];
+//	//		T dx = b.x - b2.x;
+//	//		T dy = b.y - b2.y;
+//	//		T dz = b.z - b2.z;
+//	//		T distance = sqrt(dx * dx + dy * dy + dz * dz);
+//	//		e -= (b.mass * b2.mass) / distance;
+//	//	}
+//	//}
+//
+//
+//
 //	return e;
 //}
 //

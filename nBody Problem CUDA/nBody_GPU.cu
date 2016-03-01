@@ -77,63 +77,6 @@ void advance(int nbodies, planet<T> *bodies)
 	}
 }
 
-//template <typename T>
-//__device__ void eReduction(volatile T *e, unsigned int tIDx, unsigned int tIDy, int nbodies, char oper, T *outData)
-//{
-//	int tID = tIDy * nbodies + tIDx;
-//
-//	if (oper == '+'){
-//
-//		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
-//		{
-//			if (tID < stride)
-//			{
-//				e[tID] += e[tID + stride];
-//			}
-//			__syncthreads();
-//		}
-//
-//		if (tID < 32){ warpReduce(e, tID); }
-//
-//		if (tID == 0)
-//		{
-//			outData[blockIdx.x] = e[0];
-//		}
-//	}
-//}
-
-/*template <typename T>
-__global__ void energy(int nbodies, planet<T> *bodies)
-{
-	extern __shared__ T e[];
-
-	T outData = new T[gridSize];
-
-	unsigned int tIDx = threadIdx.x;
-	unsigned int tIDy = threadIdx.y;
-	unsigned int tID = tIDy * bodies + tIDx;
-
-	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (x < nbodies && y < nbodies)
-	{
-		planet<T> &b = bodies[y];
-		e[tID] = (0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)) + ;
-		__syncthreads();
-
-
-
-		planet<T> &b2 = bodies[x];
-		T dx = b.x - b2.x;
-		T dy = b.y - b2.y;
-		T dz = b.z - b2.z;
-		T distance = sqrt(dx * dx + dy * dy + dz * dz);
-		e[tIDy * nbodies + tIDx] = (b.mass * b2.mass) / distance;
-		__syncthreads();
-	}
-}*/
-
 template<typename T>
 __device__ void warpReduce(volatile T *sdata, unsigned int tID)
 {
@@ -186,30 +129,56 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 
 	//------------------------------------------------
 
-	if ((i + blockDim.x + 1) < nbodies)
+	//int savedi = 1;
+	//for (int i = 1, j = 0; i < nbodies; i++)
+	//{
+	//	planet<T> &b = bodies[j];
+	//	planet<T> &b2 = bodies[i];
+	//	T dx = b.x - b2.x;
+	//	T dy = b.y - b2.y;
+	//	T dz = b.z - b2.z;
+	//	T distance = sqrt(dx * dx + dy * dy + dz * dz);
+	//	e -= (b.mass * b2.mass) / distance;
+
+	//	if (i == nbodies - 1 && savedi < nbodies)
+	//	{
+	//		i = savedi;
+	//		savedi = i + 1;
+	//		j++;
+	//	}
+	//}
+	e[tID] = 0;
+
+	if ((i + blockDim.x) < nbodies)
 	{
-		planet<T> &b = bodies[i + 1];
-		T dx = bodies[i].x - b.x;
-		T dy = bodies[i].y - b.y;
-		T dz = bodies[i].z - b.z;
-		T distance = sqrt(dx * dx + dy * dy + dz * dz);
+		for (int iter = i + 1; iter < nbodies - blockDim.x; iter++){
+			planet<T> &b = bodies[i];
+			planet<T> &b2 = bodies[iter];
+			T dx = b.x - b2.x;
+			T dy = b.y - b2.y;
+			T dz = b.z - b2.z;
+			T distance = sqrt(dx * dx + dy * dy + dz * dz);
 
-		planet<T> &b2 = bodies[i + blockDim.x  + 1];
-		dx = bodies[i + blockDim.x].x - b2.x;
-		dy = bodies[i + blockDim.x].y - b2.y;
-		dz = bodies[i + blockDim.x].z - b2.z;
-		T distance2 = sqrt(dx * dx + dy * dy + dz * dz);
+			planet<T> &b3 = bodies[iter + blockDim.x];
+			dx = b.x - b3.x;
+			dy = b.y - b3.y;
+			dz = b.z - b3.z;
+			T distance2 = sqrt(dx * dx + dy * dy + dz * dz);
 
-		e[tID] = ((bodies[i].mass * b.mass) / distance) + ((bodies[i + blockDim.x].mass * b2.mass) / distance2);
+			e[tID] += ((b.mass * b2.mass) / distance) + ((b.mass * b3.mass) / distance2);
+		}
 	}
-	else if(i+1 < nbodies)
+	else if(i < nbodies)
 	{
-		planet<T> &b = bodies[i+1];
-		T dx = bodies[i].x - b.x;
-		T dy = bodies[i].y - b.y;
-		T dz = bodies[i].z - b.z;
-		T distance = sqrt(dx * dx + dy * dy + dz * dz);
-		e[tID] = (bodies[i].mass * b.mass) / distance;
+		for (int iter = i + 1; iter < nbodies; iter++){
+			planet<T> &b = bodies[i];
+			planet<T> &b2 = bodies[iter];
+			T dx = b.x - b2.x;
+			T dy = b.y - b2.y;
+			T dz = b.z - b2.z;
+			T distance = sqrt(dx * dx + dy * dy + dz * dz);
+			e[tID] += (b.mass * b2.mass) / distance;
+		}
 	}
 
 	__syncthreads();
@@ -271,28 +240,58 @@ T energy(int nbodies, planet<T> *bodies)
 }
 
 
-/*template <typename T>
-T energy(int nbodies, planet<T> *bodies) {
-	T e = 0.0;
-
-	//GPU
-	for (int i = 0; i < nbodies; ++i) {
-		planet<T> &b = bodies[i];
-		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-
-		for (int j = i + 1; j < nbodies; j++) {
-			planet<T> &b2 = bodies[j];
-			T dx = b.x - b2.x;
-			T dy = b.y - b2.y;
-			T dz = b.z - b2.z;
-			T distance = sqrt(dx * dx + dy * dy + dz * dz);
-			e -= (b.mass * b2.mass) / distance;
-		}
-	}
-	return e;
-
-
-}*/
+//template <typename T>
+//T energy(int nbodies, planet<T> *bodies) {
+//	T e = 0.0;
+//	T e2 = 0.0;
+//
+//	//GPU
+//	/*for (int i = 0; i < nbodies; ++i) {
+//		planet<T> &b = bodies[i];
+//		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+//		//test += 5;
+//
+//		for (int j = i + 1; j < nbodies; j++) {
+//			planet<T> &b2 = bodies[j];
+//			T dx = b.x - b2.x;
+//			T dy = b.y - b2.y;
+//			T dz = b.z - b2.z;
+//			T distance = sqrt(dx * dx + dy * dy + dz * dz);
+//			e -= (b.mass * b2.mass) / distance;
+//			//test -= 1;
+//		}
+//	}*/
+//
+//	for (int i = 0; i < nbodies; i++)
+//	{
+//		planet<T> &b = bodies[i];
+//		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+//	}
+//
+//	int savedi = 1;
+//	for (int i = 1, j = 0; i < nbodies; i++)
+//	{
+//		planet<T> &b = bodies[j];
+//		planet<T> &b2 = bodies[i];
+//		T dx = b.x - b2.x;
+//		T dy = b.y - b2.y;
+//		T dz = b.z - b2.z;
+//		T distance = sqrt(dx * dx + dy * dy + dz * dz);
+//		e2 += (b.mass * b2.mass) / distance;
+//
+//		if (i == nbodies - 1 && savedi < nbodies)
+//		{
+//			i = savedi;
+//			savedi = i+1;
+//			j++;
+//		}
+//	}
+//
+//	T total = e - e2;
+//	int m = 3;
+//
+//	return e;
+//}
 
 template<typename T>
 __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbodies){
