@@ -149,7 +149,7 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 	//}
 	e[tID] = 0;
 
-	if ((i + blockDim.x) < nbodies)
+	/*if ((i + blockDim.x) < nbodies)
 	{
 		for (int iter = i + 1; iter < nbodies - blockDim.x; iter++){
 			planet<T> &b = bodies[i];
@@ -167,8 +167,8 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 
 			e[tID] += ((b.mass * b2.mass) / distance) + ((b.mass * b3.mass) / distance2);
 		}
-	}
-	else if(i < nbodies)
+	}*/
+	/*else*/ if(i < nbodies)
 	{
 		for (int iter = i + 1; iter < nbodies; iter++){
 			planet<T> &b = bodies[i];
