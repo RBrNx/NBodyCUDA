@@ -1,16 +1,23 @@
-﻿Build started 29/02/2016 14:15:18.
-     1>Project "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody Problem CUDA.vcxproj" on node 2 (Build target(s)).
-     1>AddCudaCompileDeps:
+﻿Build started 01/03/2016 00:31:32.
+     1>Project "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody Problem CUDA.vcxproj" on node 2 (Rebuild target(s)).
+     1>CudaClean:
+         cmd.exe /C "C:\Users\marks\AppData\Local\Temp\tmpeb7d5103345142b4bae5f42acf85b594.cmd"
+         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -ccbin "D:\Program Files\Visual Studio 2013\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile   -g   -DWIN32 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\nBody_GPU.cu.obj "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody_GPU.cu" -clean
+         
+         D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -ccbin "D:\Program Files\Visual Studio 2013\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile   -g   -DWIN32 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\nBody_GPU.cu.obj "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody_GPU.cu" -clean 
+         nBody_GPU.cu
+       AddCudaCompileDeps:
          D:\Program Files\Visual Studio 2013\VC\bin\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /DWIN32 /D_DEBUG /D_CONSOLE /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /I. /FIcuda_runtime.h /c "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody_GPU.cu" 
        CudaBuild:
          Compiling CUDA source file nBody_GPU.cu...
-         cmd.exe /C "C:\Users\marks\AppData\Local\Temp\tmp70e0f760e23b4a0fb58d37b4f2df86c0.cmd"
+         cmd.exe /C "C:\Users\marks\AppData\Local\Temp\tmp61cb5892c6f94baf9037665053b96b72.cmd"
          "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2013 -ccbin "D:\Program Files\Visual Studio 2013\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -DWIN32 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\nBody_GPU.cu.obj "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody_GPU.cu"
          
          D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2013 -ccbin "D:\Program Files\Visual Studio 2013\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -DWIN32 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\nBody_GPU.cu.obj "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody_GPU.cu" 
-     1>D:/Downloads/Documents/Visual Studio 2013/Projects/nBody Problem CUDA/nBody Problem CUDA/nBody_GPU.cu(257): warning : variable "m" was declared but never referenced
-     1>D:/Downloads/Documents/Visual Studio 2013/Projects/nBody Problem CUDA/nBody Problem CUDA/nBody_GPU.cu(257): warning : variable "m" was declared but never referenced
          nBody_GPU.cu
+       ClCompile:
+         D:\Program Files\Visual Studio 2013\VC\bin\CL.exe /c /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt nBody_CPU.cpp
+         nBody_CPU.cpp
        Link:
          D:\Program Files\Visual Studio 2013\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\Debug\nBody Problem CUDA.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\lib\Win32" cudart.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\Debug\nBody Problem CUDA.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\Debug\nBody Problem CUDA.lib" /MACHINE:X86 Debug\nBody_GPU.cu.obj
          Debug\nBody_CPU.obj
@@ -23,8 +30,8 @@
          C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\cudart32_75.dll
          C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\cudart64_75.dll
                  2 file(s) copied.
-     1>Done Building Project "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody Problem CUDA.vcxproj" (Build target(s)).
+     1>Done Building Project "D:\Downloads\Documents\Visual Studio 2013\Projects\nBody Problem CUDA\nBody Problem CUDA\nBody Problem CUDA.vcxproj" (Rebuild target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:10.60
+Time Elapsed 00:00:11.66
