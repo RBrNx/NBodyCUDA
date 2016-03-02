@@ -98,8 +98,11 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 	if ((i + blockDim.x) < nbodies){
 		planet<T> &b = bodies[i];
 		planet<T> &b2 = bodies[i + blockDim.x];
+
+		T var = (0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz));
+		T var2 = (0.5 * b2.mass * (b2.vx * b2.vx + b2.vy * b2.vy + b2.vz * b2.vz));
 		
-		e[tID] = (0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)) + (0.5 * b2.mass * (b2.vx * b2.vx + b2.vy * b2.vy + b2.vz * b2.vz));
+		e[tID] = var + var2;
 	}
 	else if(i < nbodies)
 	{
@@ -109,7 +112,7 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 
 	__syncthreads();
 
-	for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+	for (unsigned int stride = (int)ceil((float)blockDim.x / 2); stride > 0; stride >>= 1)
 	{
 		if (tID < stride)
 		{
@@ -117,8 +120,6 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 		}
 		__syncthreads();
 	}
-
-	if (tID < 32){ warpReduce(e, tID); }
 
 	if (tID == 0)
 	{
@@ -129,46 +130,9 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 
 	//------------------------------------------------
 
-	//int savedi = 1;
-	//for (int i = 1, j = 0; i < nbodies; i++)
-	//{
-	//	planet<T> &b = bodies[j];
-	//	planet<T> &b2 = bodies[i];
-	//	T dx = b.x - b2.x;
-	//	T dy = b.y - b2.y;
-	//	T dz = b.z - b2.z;
-	//	T distance = sqrt(dx * dx + dy * dy + dz * dz);
-	//	e -= (b.mass * b2.mass) / distance;
-
-	//	if (i == nbodies - 1 && savedi < nbodies)
-	//	{
-	//		i = savedi;
-	//		savedi = i + 1;
-	//		j++;
-	//	}
-	//}
 	e[tID] = 0;
 
-	/*if ((i + blockDim.x) < nbodies)
-	{
-		for (int iter = i + 1; iter < nbodies - blockDim.x; iter++){
-			planet<T> &b = bodies[i];
-			planet<T> &b2 = bodies[iter];
-			T dx = b.x - b2.x;
-			T dy = b.y - b2.y;
-			T dz = b.z - b2.z;
-			T distance = sqrt(dx * dx + dy * dy + dz * dz);
-
-			planet<T> &b3 = bodies[iter + blockDim.x];
-			dx = b.x - b3.x;
-			dy = b.y - b3.y;
-			dz = b.z - b3.z;
-			T distance2 = sqrt(dx * dx + dy * dy + dz * dz);
-
-			e[tID] += ((b.mass * b2.mass) / distance) + ((b.mass * b3.mass) / distance2);
-		}
-	}*/
-	/*else*/ if(i < nbodies)
+	if (i < nbodies)
 	{
 		for (int iter = i + 1; iter < nbodies; iter++){
 			planet<T> &b = bodies[i];
@@ -177,24 +141,32 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 			T dy = b.y - b2.y;
 			T dz = b.z - b2.z;
 			T distance = sqrt(dx * dx + dy * dy + dz * dz);
-			e[tID] += (b.mass * b2.mass) / distance;
+			T var = ((b.mass * b2.mass) / distance);
+			e[tID] += var;
+
+			if (iter + blockDim.x < nbodies){
+				planet<T> &b3 = bodies[i + blockDim.x];
+				planet<T> &b4 = bodies[iter + blockDim.x];
+				dx = b3.x - b4.x;
+				dy = b3.y - b4.y;
+				dz = b3.z - b4.z;
+				T distance2 = sqrt(dx * dx + dy * dy + dz * dz);
+				var = ((b3.mass * b4.mass) / distance2);
+				e[tID] += var;
+			}
 		}
 	}
 
 	__syncthreads();
 
-	for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+	for (unsigned int stride = (int)ceil((float)blockDim.x / 2); stride > 0; stride >>= 1)
 	{
 		if (tID < stride)
 		{
 			e[tID] += e[tID + stride];
 		}
 		__syncthreads();
-
-
 	}
-
-	if (tID < 32){ warpReduce(e, tID); }
 
 	if (tID == 0)
 	{
@@ -205,7 +177,7 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 template <typename T>
 T energy(int nbodies, planet<T> *bodies)
 {
-	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, energyKernel<type>, 0, nbodies);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, energyKernel<T>, 0, nbodies);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 
 	if (gridSize > 1){
@@ -224,7 +196,7 @@ T energy(int nbodies, planet<T> *bodies)
 	planet<T> *d_bodies; cudaMalloc((void**)&d_bodies, nbodies * sizeof(planet<T>));
 
 	cudaMemcpy(d_bodies, bodies, nbodies * sizeof(planet<T>), cudaMemcpyHostToDevice);
-	energyKernel << <gridSize, blockSize, nbodies * sizeof(planet<T>) >> >(nbodies, d_addArray, d_subArray, d_bodies);
+	energyKernel << <gridSize, blockSize, nbodies * sizeof(T) >> >(nbodies, d_addArray, d_subArray, d_bodies);
 	cudaMemcpy(h_addArray, d_addArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_subArray, d_subArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 
@@ -239,89 +211,33 @@ T energy(int nbodies, planet<T> *bodies)
 	return e;
 }
 
-
-//template <typename T>
-//T energy(int nbodies, planet<T> *bodies) {
-//	T e = 0.0;
-//	T e2 = 0.0;
-//
-//	//GPU
-//	/*for (int i = 0; i < nbodies; ++i) {
-//		planet<T> &b = bodies[i];
-//		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-//		//test += 5;
-//
-//		for (int j = i + 1; j < nbodies; j++) {
-//			planet<T> &b2 = bodies[j];
-//			T dx = b.x - b2.x;
-//			T dy = b.y - b2.y;
-//			T dz = b.z - b2.z;
-//			T distance = sqrt(dx * dx + dy * dy + dz * dz);
-//			e -= (b.mass * b2.mass) / distance;
-//			//test -= 1;
-//		}
-//	}*/
-//
-//	for (int i = 0; i < nbodies; i++)
-//	{
-//		planet<T> &b = bodies[i];
-//		e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-//	}
-//
-//	int savedi = 1;
-//	for (int i = 1, j = 0; i < nbodies; i++)
-//	{
-//		planet<T> &b = bodies[j];
-//		planet<T> &b2 = bodies[i];
-//		T dx = b.x - b2.x;
-//		T dy = b.y - b2.y;
-//		T dz = b.z - b2.z;
-//		T distance = sqrt(dx * dx + dy * dy + dz * dz);
-//		e2 += (b.mass * b2.mass) / distance;
-//
-//		if (i == nbodies - 1 && savedi < nbodies)
-//		{
-//			i = savedi;
-//			savedi = i+1;
-//			j++;
-//		}
-//	}
-//
-//	T total = e - e2;
-//	int m = 3;
-//
-//	return e;
-//}
-
 template<typename T>
 __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbodies){
 	extern __shared__ T sdata[];
 
-	if (arrayIdent == 1){
-		unsigned int tID = threadIdx.x;
-		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
+	unsigned int tID = threadIdx.x;
+	unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
 
-		if (tID < nbodies && (i + blockDim.x) < nbodies){
-			sdata[tID] = (bodies[i].vx * bodies[i].mass) + (bodies[i + blockDim.x].vx * bodies[i + blockDim.x].mass);
+	if (arrayIdent == 1){
+		if (i + blockDim.x < nbodies){
+			T var = bodies[i].vx * bodies[i].mass;
+			T var2 = bodies[i + blockDim.x].vx * bodies[i + blockDim.x].mass;
+			sdata[tID] = var + var2;
 		}
-		else{
-			sdata[tID] = (bodies[i].vx * bodies[i].mass);
+		else if(i < nbodies){
+			sdata[tID] = bodies[i].vx * bodies[i].mass;
 		}
 
 		__syncthreads();
 
-		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		for (unsigned int stride = (int)ceil((float)blockDim.x / 2); stride > 0; stride >>= 1)
 		{
 			if (tID < stride)
 			{
 				sdata[tID] += sdata[tID + stride];
 			}
 			__syncthreads();
-
-
 		}
-
-		if (tID < 32){ warpReduce(sdata, tID); }
 
 		if (tID == 0)
 		{
@@ -330,17 +246,15 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 	}
 
 	if (arrayIdent == 2){
-		unsigned int tID = threadIdx.x;
-		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
-		if (tID < nbodies && (i + blockDim.x) < nbodies){
+		if (i + blockDim.x < nbodies){
 			sdata[tID] = (bodies[i].vy * bodies[i].mass) + (bodies[i + blockDim.x].vy * bodies[i + blockDim.x].mass);
 		}
-		else{
+		else if (i < nbodies){
 			sdata[tID] = (bodies[i].vy * bodies[i].mass);
 		}
 		__syncthreads();
 
-		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		for (unsigned int stride = (int)ceil((float)blockDim.x / 2); stride > 0; stride >>= 1)
 		{
 			if (tID < stride)
 			{
@@ -348,8 +262,6 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 			}
 			__syncthreads();
 		}
-
-		if (tID < 32){ warpReduce(sdata, tID); }
 
 		if (tID == 0)
 		{
@@ -358,17 +270,15 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 	}
 
 	if (arrayIdent == 3){
-		unsigned int tID = threadIdx.x;
-		unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
-		if (tID < nbodies && (i + blockDim.x) < nbodies){
+		if (i + blockDim.x < nbodies){
 			sdata[tID] = (bodies[i].vz * bodies[i].mass) + (bodies[i + blockDim.x].vz * bodies[i + blockDim.x].mass);
 		}
-		else{
+		else if (i < nbodies){
 			sdata[tID] = (bodies[i].vz * bodies[i].mass);
 		}
 		__syncthreads();
 
-		for (unsigned int stride = blockDim.x / 2; stride > 32; stride >>= 1)
+		for (unsigned int stride = (int)ceil((float)blockDim.x / 2); stride > 0; stride >>= 1)
 		{
 			if (tID < stride)
 			{
@@ -376,8 +286,6 @@ __global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbo
 			}
 			__syncthreads();
 		}
-
-		if (tID < 32){ warpReduce(sdata, tID); }
 
 		if (tID == 0)
 		{
@@ -405,23 +313,21 @@ void offset_momentum(int nbodies, planet<T> *bodies) {
 	planet<T> *d_bodies; cudaMalloc((void**)&d_bodies, nbodies * sizeof(planet<T>));
 
 	cudaMemcpy(d_bodies, bodies, nbodies * sizeof(planet<T>), cudaMemcpyHostToDevice);
-	reduceSum << <gridSize, blockSize, nbodies * sizeof(planet<T>) >> >(d_bodies, d_reducedArray, 1, nbodies);
+	reduceSum << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 1, nbodies);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
 	}
 	px = h_reducedArray[0];
 
-	//cudaMemcpy(d_test, test, 1000 * sizeof(int), cudaMemcpyHostToDevice);
-	reduceSum << <gridSize, blockSize, nbodies * sizeof(planet<T>) >> >(d_bodies, d_reducedArray, 2, nbodies);
+	reduceSum << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 2, nbodies);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
 	}
 	py = h_reducedArray[0];
 
-	//cudaMemcpy(d_test, test, 1000 * sizeof(int), cudaMemcpyHostToDevice);
-	reduceSum << <gridSize, blockSize, nbodies * sizeof(planet<T>) >> >(d_bodies, d_reducedArray, 3, nbodies);
+	reduceSum << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 3, nbodies);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
@@ -531,15 +437,6 @@ int main(int argc, char ** argv) {
 	else {
 		bodies = new planet<type>[nbodies];
 		init_random_bodies(nbodies, bodies);
-
-		//planet<type> *cudabodies;
-		//cudamalloc((void**)&cudabodies, nbodies * sizeof(planet<type>));
-		//
-		//cudaoccupancymaxpotentialblocksize(&mingridsize, &blocksize, init_random_bodies<type>, 0, nbodies);
-		//gridsize = (nbodies + blocksize - 1) / blocksize;
-		//init_random_bodies<<<gridsize, blocksize >>>(nbodies, cudabodies);
-
-		//cudamemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudamemcpydevicetohost);
  	}
 
 	auto t1 = std::chrono::steady_clock::now();
@@ -563,8 +460,6 @@ int main(int argc, char ** argv) {
 	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
 	scale_bodies<<<gridSize, blockSize >>>(nbodies, cudabodies, RECIP_DT);
 	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
-
-	//scale_bodies(nbodies, bodies, RECIP_DT);
 
 	type e2 = energy(nbodies, bodies);
 	auto t2 = std::chrono::steady_clock::now();
