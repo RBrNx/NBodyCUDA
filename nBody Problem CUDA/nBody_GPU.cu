@@ -45,16 +45,17 @@ struct planet {
 	T mass;
 };
 
-template <typename T>
-void advance(int nbodies, planet<T> *bodies)
-{
-	int i, j;
+template<typename T>
+__global__ void advanceKernel(int nbodies, planet<T> *bodies){
 
-	for (i = 0; i < nbodies; ++i) {
-		planet<T> &b = bodies[i];
+	unsigned int tID = threadIdx.x;
+	unsigned int i = tID + blockIdx.x * (blockDim.x * 2);
 
-		for (j = i + 1; j < nbodies; j++) {
-			planet<T> &b2 = bodies[j];
+	if (i < nbodies)
+	{
+		for (int iter = i + 1; iter < nbodies; iter++){
+			planet<T> &b = bodies[i];
+			planet<T> &b2 = bodies[iter];
 			T dx = b.x - b2.x;
 			T dy = b.y - b2.y;
 			T dz = b.z - b2.z;
@@ -66,16 +67,85 @@ void advance(int nbodies, planet<T> *bodies)
 			b2.vx += dx * b.mass  * mag;
 			b2.vy += dy * b.mass  * mag;
 			b2.vz += dz * b.mass  * mag;
+
+			if (iter + blockDim.x < nbodies){
+				planet<T> &b3 = bodies[i + blockDim.x];
+				planet<T> &b4 = bodies[iter + blockDim.x];
+				dx = b3.x - b4.x;
+				dy = b3.y - b4.y;
+				dz = b3.z - b4.z;
+				inv_distance = 1.0 / sqrt(dx * dx + dy * dy + dz * dz);
+				mag = inv_distance * inv_distance * inv_distance;
+				b3.vx -= dx * b4.mass * mag;
+				b3.vy -= dy * b4.mass * mag;
+				b3.vz -= dz * b4.mass * mag;
+				b4.vx += dx * b3.mass  * mag;
+				b4.vy += dy * b3.mass  * mag;
+				b4.vz += dz * b3.mass  * mag;
+			}
 		}
 	}
 
-	for (i = 0; i < nbodies; ++i) {
+	__syncthreads();
+
+	for (int i = 0; i < nbodies; i++){
 		planet<T> &b = bodies[i];
 		b.x += b.vx;
 		b.y += b.vy;
 		b.z += b.vz;
 	}
 }
+
+template<typename T>
+void advance(int nbodies, planet<T> *bodies){
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, advanceKernel<T>, 0, nbodies);
+	gridSize = (nbodies + blockSize - 1) / blockSize;
+
+	if (gridSize > 1){
+		gridSize = (int)ceil((float)gridSize / 2);
+	}
+	else{
+		blockSize = (int)ceil((float)blockSize / 2);
+	}
+
+	planet<T> *d_bodies; cudaMalloc((void**)&d_bodies, nbodies * sizeof(planet<T>));
+
+	cudaMemcpy(d_bodies, bodies, nbodies * sizeof(planet<T>), cudaMemcpyHostToDevice);
+	advanceKernel << <gridSize, blockSize>> >(nbodies, d_bodies);
+	cudaMemcpy(bodies, d_bodies, nbodies * sizeof(planet<T>), cudaMemcpyDeviceToHost);
+}
+
+//template <typename T>
+//void advance(int nbodies, planet<T> *bodies)
+//{
+//	int i, j;
+//
+//	for (i = 0; i < nbodies; ++i) {
+//		planet<T> &b = bodies[i];
+//
+//		for (j = i + 1; j < nbodies; j++) {
+//			planet<T> &b2 = bodies[j];
+//			T dx = b.x - b2.x;
+//			T dy = b.y - b2.y;
+//			T dz = b.z - b2.z;
+//			T inv_distance = 1.0 / sqrt(dx * dx + dy * dy + dz * dz);
+//			T mag = inv_distance * inv_distance * inv_distance;
+//			b.vx -= dx * b2.mass * mag;
+//			b.vy -= dy * b2.mass * mag;
+//			b.vz -= dz * b2.mass * mag;
+//			b2.vx += dx * b.mass  * mag;
+//			b2.vy += dy * b.mass  * mag;
+//			b2.vz += dz * b.mass  * mag;
+//		}
+//	}
+//
+//	for (i = 0; i < nbodies; ++i) {
+//		planet<T> &b = bodies[i];
+//		b.x += b.vx;
+//		b.y += b.vy;
+//		b.z += b.vz;
+//	}
+//}
 
 template<typename T>
 __device__ void warpReduce(volatile T *sdata, unsigned int tID)
@@ -212,7 +282,7 @@ T energy(int nbodies, planet<T> *bodies)
 }
 
 template<typename T>
-__global__ void reduceSum(planet<T> *bodies, T *outdata, int arrayIdent, int nbodies){
+__global__ void offsetKernel(planet<T> *bodies, T *outdata, int arrayIdent, int nbodies){
 	extern __shared__ T sdata[];
 
 	unsigned int tID = threadIdx.x;
@@ -298,7 +368,7 @@ template <typename T>
 void offset_momentum(int nbodies, planet<T> *bodies) {
 	T px = 0.0, py = 0.0, pz = 0.0;
 
-	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, reduceSum<type>, 0, nbodies);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, offsetKernel<type>, 0, nbodies);
 	gridSize = ((nbodies + blockSize - 1) / blockSize);
 
 	if (gridSize > 1){
@@ -313,21 +383,21 @@ void offset_momentum(int nbodies, planet<T> *bodies) {
 	planet<T> *d_bodies; cudaMalloc((void**)&d_bodies, nbodies * sizeof(planet<T>));
 
 	cudaMemcpy(d_bodies, bodies, nbodies * sizeof(planet<T>), cudaMemcpyHostToDevice);
-	reduceSum << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 1, nbodies);
+	offsetKernel << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 1, nbodies);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
 	}
 	px = h_reducedArray[0];
 
-	reduceSum << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 2, nbodies);
+	offsetKernel << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 2, nbodies);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
 	}
 	py = h_reducedArray[0];
 
-	reduceSum << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 3, nbodies);
+	offsetKernel << <gridSize, blockSize, nbodies * sizeof(T) >> >(d_bodies, d_reducedArray, 3, nbodies);
 	cudaMemcpy(h_reducedArray, d_reducedArray, gridSize * sizeof(T), cudaMemcpyDeviceToHost);
 	for (int i = 1; i < gridSize; i++){
 		h_reducedArray[0] += h_reducedArray[i];
@@ -395,7 +465,7 @@ const type RECIP_DT{ 1.0 / DT };
 * When all advances done, rescale bodies back to obtain correct energy.
 */
 template <typename T>
-__global__ void scale_bodies(int nBodies, planet<T> *bodies, T scale){
+__global__ void scale_bodiesKernel(int nBodies, planet<T> *bodies, T scale){
 
 	int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -445,20 +515,20 @@ int main(int argc, char ** argv) {
 
 	planet<type> *cudabodies;
 	cudaMalloc((void**)&cudabodies, nbodies * sizeof(planet<type>));
-	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodiesKernel<type>, 0, nbodies);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
-	scale_bodies<<<gridSize, blockSize>>>(nbodies, cudabodies, DT);
+	scale_bodiesKernel << <gridSize, blockSize >> >(nbodies, cudabodies, DT);
 	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
 
 	for (int i = 1; i <= niters; ++i)  {
 		advance(nbodies, bodies);
 	}
 
-	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodies<type>, 0, nbodies);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodiesKernel<type>, 0, nbodies);
 	gridSize = (nbodies + blockSize - 1) / blockSize;
 	cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice);
-	scale_bodies<<<gridSize, blockSize >>>(nbodies, cudabodies, RECIP_DT);
+	scale_bodiesKernel << <gridSize, blockSize >> >(nbodies, cudabodies, RECIP_DT);
 	cudaMemcpy(bodies, cudabodies, nbodies * sizeof(planet<type>), cudaMemcpyDeviceToHost);
 
 	type e2 = energy(nbodies, bodies);
