@@ -22,6 +22,8 @@
     <ClCompile Include="nBody_CPU.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="nBody_CPU2.cu" />
+    <CudaCompile Include="nBody_FullGPU.cu" />
     <CudaCompile Include="nBody_GPU.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
