@@ -378,3 +378,129 @@ c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\host_defines.h
 c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\vector_functions.h
 c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\device_launch_parameters.h
 c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\vector_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include\cuda_runtime.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include\cuda_occupancy.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\malloc.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\stdio.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\swprintf.inl
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\chrono
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\limits
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ymath.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\cfloat
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\float.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtwrn.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\climits
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\cwchar
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\wchar.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xstddef
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\cstddef
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\initializer_list
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ratio
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\stdint.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\type_traits
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xrefwrap
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\utility
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\iosfwd
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\cstdio
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\cstring
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdbg.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\thr/xtimec.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\thr/xthrcommon.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\iomanip
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\istream
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ostream
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ios
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xlocnum
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\streambuf
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xiosbase
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xlocale
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\stdexcept
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\exception
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\eh.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xstring
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xmemory0
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\new
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xutility
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xatomic0.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\intrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\setjmp.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\immintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\wmmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\nmmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\smmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\tmmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\pmmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\emmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xmmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\mmintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ammintrin.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\mm3dnow.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\typeinfo
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xlocinfo
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xlocinfo.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ctype.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\locale.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xdebug
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xmemory
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xfacet
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\system_error
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\cerrno
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\errno.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\share.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xlocmon
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\xloctime
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\ctime
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\iostream
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include\curand.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include\cuda_runtime.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include\curand_kernel.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_discrete.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_precalc.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mrg32k3a.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32_kernel.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include\cuda.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\memory.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\crtdefs.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_philox4x32_x.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_globals.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_uniform.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mrg32k3a.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32_kernel.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_normal.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mrg32k3a.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32_kernel.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_normal_static.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_lognormal.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mrg32k3a.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32_kernel.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_poisson.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mrg32k3a.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32_kernel.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_discrete2.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mrg32k3a.h
+c:\program files\nvidia gpu computing toolkit\cuda\v7.5\include\curand_mtgp32_kernel.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h
+D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\algorithm

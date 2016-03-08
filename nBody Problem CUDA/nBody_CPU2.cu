@@ -110,15 +110,14 @@
 ////}
 //
 //template <typename T>
-//__global__ void advanceVelocities(int nbodies, planet<T> *bodies)
-//{
-//	int i = threadIdx.x + blockIdx.x*blockDim.x;
+//__global__ void advanceKernel(int nbodies, planet<T> *bodies){
 //
-//	if (i < nbodies)
-//	{
-//		planet<T> &b = bodies[i];
-//		for (int j = i + 1; j < nbodies; ++j)
-//		{
+//	int i = blockIdx.x * blockDim.x + threadIdx.x;
+//	int j = blockIdx.x * blockDim.x + threadIdx.y;
+//
+//	if (i < nbodies && j < nbodies){
+//		if (j > i){
+//			planet<T> &b = bodies[i];
 //			planet<T> &b2 = bodies[j];
 //			T dx = b.x - b2.x;
 //			T dy = b.y - b2.y;
@@ -135,6 +134,32 @@
 //	}
 //}
 //
+////template <typename T>
+////__global__ void advanceVelocities(int nbodies, planet<T> *bodies)
+////{
+////	int i = threadIdx.x + blockIdx.x*blockDim.x;
+////
+////	if (i < nbodies)
+////	{
+////		planet<T> &b = bodies[i];
+////		for (int j = i + 1; j < nbodies; ++j)
+////		{
+////			planet<T> &b2 = bodies[j];
+////			T dx = b.x - b2.x;
+////			T dy = b.y - b2.y;
+////			T dz = b.z - b2.z;
+////			T inv_distance = 1.0 / sqrt(dx * dx + dy * dy + dz * dz);
+////			T mag = inv_distance * inv_distance * inv_distance;
+////			b.vx -= dx * b2.mass * mag;
+////			b.vy -= dy * b2.mass * mag;
+////			b.vz -= dz * b2.mass * mag;
+////			b2.vx += dx * b.mass  * mag;
+////			b2.vy += dy * b.mass  * mag;
+////			b2.vz += dz * b.mass  * mag;
+////		}
+////	}
+////}
+////
 //template <typename T>
 //__global__ void advancePositions(int nbodies, planet<T> *bodies)
 //{
@@ -148,14 +173,14 @@
 //		b.z += b.vz;
 //	}
 //}
-//
-//template <typename T>
-//void advance_gpued(int nbodies, planet<T> *bodies)
-//{
-//	advanceVelocities << <1, nbodies >> >(nbodies, bodies);
-//
-//	advancePositions << <1, nbodies >> >(nbodies, bodies);
-//}
+////
+////template <typename T>
+////void advance_gpued(int nbodies, planet<T> *bodies)
+////{
+////	advanceVelocities << <1, nbodies >> >(nbodies, bodies);
+////
+////	advancePositions << <1, nbodies >> >(nbodies, bodies);
+////}
 //
 //template <typename T>
 //T energy(int nbodies, planet<T> *bodies) {
@@ -309,17 +334,20 @@
 //
 //	auto advanceStart = std::chrono::steady_clock::now();
 //
-//	//planet<type> *devBodies = nullptr;
-//	//cudaMalloc(&devBodies, nbodies*sizeof(planet<type>));
-//	//cudaMemcpy(devBodies, bodies, nbodies*sizeof(planet<type>), cudaMemcpyHostToDevice);
+//	planet<type> *devBodies = nullptr;
+//	cudaMalloc(&devBodies, nbodies*sizeof(planet<type>));
+//	cudaMemcpy(devBodies, bodies, nbodies*sizeof(planet<type>), cudaMemcpyHostToDevice);
+//
+//	dim3 block(nbodies - 1, nbodies);
 //
 //	for (int i = 1; i <= niters; ++i)  {
-//		//advanceKernel<<<1, nbodies>>>(nbodies, devBodies);
+//		advanceKernel<<<1, block>>>(nbodies, devBodies);
+//		advancePositions << <1, nbodies >> >(nbodies, devBodies);
 //		//advance_gpued(nbodies, devBodies);
-//		advance(nbodies, bodies);
+//		//advance(nbodies, bodies);
 //	}
 //
-//	//cudaMemcpy(bodies, devBodies, nbodies*sizeof(planet<type>), cudaMemcpyDeviceToHost);
+//	cudaMemcpy(bodies, devBodies, nbodies*sizeof(planet<type>), cudaMemcpyDeviceToHost);
 //
 //	auto advanceStop = std::chrono::steady_clock::now();
 //

@@ -1,6 +1,16 @@
-﻿Build started 04/03/2016 11:55:10.
+﻿Build started 04/03/2016 15:11:23.
      1>Project "D:\Uni Stuff\Visual Studio 2013\Projects\NBodyCUDA\nBody Problem CUDA\nBody Problem CUDA.vcxproj" on node 2 (Build target(s)).
-     1>ClCompile:
+     1>AddCudaCompileDeps:
+         D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /DWIN32 /D_DEBUG /D_CONSOLE /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /I. /FIcuda_runtime.h /c "D:\Uni Stuff\Visual Studio 2013\Projects\NBodyCUDA\nBody Problem CUDA\nBody_FullGPU.cu" 
+       CudaBuild:
+         Compiling CUDA source file nBody_FullGPU.cu...
+         cmd.exe /C "C:\Users\RBrNx\AppData\Local\Temp\tmpebe9c97baa9d41e8bac7d1cdf10ad591.cmd"
+         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2013 -ccbin "D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -DWIN32 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\nBody_FullGPU.cu.obj "D:\Uni Stuff\Visual Studio 2013\Projects\NBodyCUDA\nBody Problem CUDA\nBody_FullGPU.cu"
+         
+         D:\Uni Stuff\Visual Studio 2013\Projects\NBodyCUDA\nBody Problem CUDA>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2013 -ccbin "D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -DWIN32 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd " -o Debug\nBody_FullGPU.cu.obj "D:\Uni Stuff\Visual Studio 2013\Projects\NBodyCUDA\nBody Problem CUDA\nBody_FullGPU.cu" 
+         nBody_FullGPU.cu
+     1>D:/Uni Stuff/Visual Studio 2013/Projects/NBodyCUDA/nBody Problem CUDA/nBody_FullGPU.cu(430): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+       ClCompile:
          D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt nBody_CPU.cpp
          nBody_CPU.cpp
        Link:
@@ -21,4 +31,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.99
+Time Elapsed 00:00:06.24
