@@ -22,10 +22,11 @@ and should be:
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <curand.h>
-#include <curand_kernel.h>
 #include <algorithm>
 
+/*
+	inline function that will print any CUDA error codes, including the line number and file name where the error is present
+*/
 #define gpuErr(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
 {
@@ -102,6 +103,9 @@ struct planet<type> golden_bodies[5] = {
 	}
 };
 
+/*
+	advanceKernel replaces the advace() function from the Serial Code.
+*/
 template<typename T>
 __global__ void advanceKernel(int nbodies, planet<T> *bodies){
 
@@ -139,65 +143,11 @@ __global__ void advanceKernel(int nbodies, planet<T> *bodies){
 
 }
 
-template <typename T>
-__global__ void advanceVelocities(int nbodies, planet<T> *bodies)
-{
-	int i = threadIdx.x + blockIdx.x*blockDim.x;
-
-	if (i < nbodies)
-	{
-		planet<T> &b = bodies[i];
-		for (int j = i + 1; j < nbodies; ++j)
-		{
-			planet<T> &b2 = bodies[j];
-			T dx = b.x - b2.x;
-			T dy = b.y - b2.y;
-			T dz = b.z - b2.z;
-			T inv_distance = 1.0 / sqrt(dx * dx + dy * dy + dz * dz);
-			T mag = inv_distance * inv_distance * inv_distance;
-			b.vx -= dx * b2.mass * mag;
-			b.vy -= dy * b2.mass * mag;
-			b.vz -= dz * b2.mass * mag;
-			b2.vx += dx * b.mass  * mag;
-			b2.vy += dy * b.mass  * mag;
-			b2.vz += dz * b.mass  * mag;
-		}
-	}
-}
-
-template <typename T>
-__global__ void advancePositions(int nbodies, planet<T> *bodies)
-{
-	int i = threadIdx.x + blockIdx.x*blockDim.x;
-
-	if (i < nbodies)
-	{
-		planet<T> &b = bodies[i];
-		b.x += b.vx;
-		b.y += b.vy;
-		b.z += b.vz;
-	}
-}
-
-template <typename T>
-void advance_gpued(int nbodies, planet<T> *bodies)
-{
-	advanceVelocities << <1, nbodies >> >(nbodies, bodies);
-
-	advancePositions << <1, nbodies >> >(nbodies, bodies);
-}
-
-template<typename T>
-__device__ void warpReduce(volatile T *sdata, unsigned int tID)
-{
-	sdata[tID] += sdata[tID + 32];
-	sdata[tID] += sdata[tID + 16];
-	sdata[tID] += sdata[tID + 8];
-	sdata[tID] += sdata[tID + 4];
-	sdata[tID] += sdata[tID + 2];
-	sdata[tID] += sdata[tID + 1];
-}
-
+/*
+	energyKernel replaces the energy() function from the Serial Code.
+	Split into two 'loops'. First loop calculates all the additions and reduces them.
+	Second loop below the line, calculates all the subtractions and reduces them.
+*/
 template <typename T>
 __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *bodies){
 	extern __shared__ T e[];
@@ -263,6 +213,11 @@ __global__ void energyKernel(int nbodies, T *addReduc, T *subReduc, planet<T> *b
 	}
 }
 
+/*
+	energy function now just sets up some host/device arrays and launches the energyKernel to calculate the energy values.
+	Additions are stored in h_addArray, Subtractions are stored in h_subArray. 
+	h_addArray - h_subArray calculates the additions minus the subtractions all in one go.
+*/
 template <typename T>
 T energy(int nbodies, planet<T> *bodies)
 {
@@ -287,6 +242,9 @@ T energy(int nbodies, planet<T> *bodies)
 	return e;
 }
 
+/*
+	offsetKernel stores the local variables px, py and pz, and calls offsetReduction to calculate these.
+*/
 template <typename T>
 __global__ void offsetKernel(planet<T> *bodies, T *outdata, int nbodies, int gridSize, T solar_mass){
 	T px = 0.0, py = 0.0, pz = 0.0;
@@ -319,6 +277,10 @@ __global__ void offsetKernel(planet<T> *bodies, T *outdata, int nbodies, int gri
 
 }
 
+/*
+	offsetReduction replaces most of the offset_mometum() function from the Serial Code.
+	arrayIdent == 1 calculates px, 2 calculates py and 3 calculates pz.
+*/
 template <typename T>
 __device__ void offsetReduction(planet<T> *bodies, T *outdata, int arrayIdent, int nbodies){
 	extern __shared__ T sdata[];
@@ -363,6 +325,10 @@ __device__ void offsetReduction(planet<T> *bodies, T *outdata, int arrayIdent, i
 	}
 }
 
+/*
+	offset_mometum allocates space for one variable on the GPU and launches the offsetKernel.
+	This variable is used to store px, py and pz after each of the offsetReduction calls.
+*/
 template <typename T>
 void offset_momentum(int nbodies, planet<T> *bodies) {
 	T *d_reducedArray; cudaMalloc((void**)&d_reducedArray, gridSize * sizeof(T));
@@ -373,6 +339,9 @@ void offset_momentum(int nbodies, planet<T> *bodies) {
 	cudaFree(d_reducedArray);
 }
 
+/*
+	scale_bodiesKernel replaces scale_bodies() from the Serial Code.
+*/
 template <typename T>
 __global__ void scale_bodiesKernel(int nBodies, planet<T> *bodies, T scale){
 
@@ -385,7 +354,9 @@ __global__ void scale_bodiesKernel(int nBodies, planet<T> *bodies, T scale){
 		bodies[idx].vz *= scale;
 	}
 }
-
+/*
+	init_random_bodies() is exactly the same as the Serial Code version, this has not been parallelized.
+*/
 template <typename T>
 void init_random_bodies(int nbodies, planet<T> *bodies) {
 
@@ -400,6 +371,10 @@ void init_random_bodies(int nbodies, planet<T> *bodies) {
 	}
 }
 
+/*
+	isPowerOfTwo() returns true if x is a power of 2, and false if otherwise.
+	Used to round our number of threads up to the nearest power of two if it is not a power of two.
+*/
 int isPowerOfTwo(unsigned int x)
 {
 	return ((x != 0) && !(x & (x - 1)));
@@ -413,20 +388,22 @@ int main(int argc, char ** argv) {
 	std::cout << "niters=" << niters << " nbodies=" << nbodies << '\n';
 
 	planet<type> *bodies;
+	planet<type> *cudabodies;
 	if (argc == 1) {
-		bodies = golden_bodies; // Check accuracy with 1000 solar system iterations
+		bodies = golden_bodies;
 	}
 	else {
 		bodies = new planet<type>[nbodies];
 		init_random_bodies(nbodies, bodies);
 	}
 
-	planet<type> *cudabodies;
-	gpuErr(cudaMalloc((void**)&cudabodies, nbodies * sizeof(planet<type>)));
-	gpuErr(cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice));
-	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodiesKernel<type>, 0, nbodies);
+	gpuErr(cudaMalloc((void**)&cudabodies, nbodies * sizeof(planet<type>))); //Allocate memory on GPU for bodies
+	gpuErr(cudaMemcpy(cudabodies, bodies, nbodies * sizeof(planet<type>), cudaMemcpyHostToDevice)); //Copy host bodies into allocated memory
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, scale_bodiesKernel<type>, 0, nbodies); //Returns a suggested gridsize and blocksize based on the number of bodies
 	gridSize = (nbodies + blockSize - 1) / blockSize;
-	if (!isPowerOfTwo(blockSize)){
+
+	//Rounds blocksize to a power of two. Reduction algorithms will not work without a power of two.
+	if (!isPowerOfTwo(blockSize)){ 
 		blockSize = pow(2, ceil(log(blockSize) / log(2)));
 	}
 	if (blockSize > 1024){
@@ -434,55 +411,48 @@ int main(int argc, char ** argv) {
 		gridSize = multiple;
 	}
 
-
+	//Offset Momemtum
 	auto offsetStart = std::chrono::steady_clock::now();
-
 	offset_momentum(nbodies, cudabodies);
 	cudaThreadSynchronize();
-
 	auto offsetStop = std::chrono::steady_clock::now();
 
+	//Starting Energy
 	auto energyStart = std::chrono::steady_clock::now();
-
 	type e1 = energy(nbodies, cudabodies);
 	cudaThreadSynchronize();
-
 	auto energyStop = std::chrono::steady_clock::now();
 
+	//Scale Bodies down
 	auto scaleStart = std::chrono::steady_clock::now();
-
 	scale_bodiesKernel<<<gridSize, blockSize>>>(nbodies, cudabodies, DT);
 	gpuErr(cudaPeekAtLastError());
 	cudaThreadSynchronize();
-
 	auto scaleStop = std::chrono::steady_clock::now();
 
+	//Advance for niters iterations
 	auto advanceStart = std::chrono::steady_clock::now();
-
 	for (int i = 1; i <= niters; ++i)  {
 		advanceKernel<<<gridSize, blockSize>>>(nbodies, cudabodies);
-		//advance_gpued(nbodies, cudabodies);
 		gpuErr(cudaPeekAtLastError());
 		cudaThreadSynchronize();
 	}
-
 	auto advanceStop = std::chrono::steady_clock::now();
 
+	//Scale Bodies up
 	auto scale2Start = std::chrono::steady_clock::now();
-
 	scale_bodiesKernel<<<gridSize, blockSize>>>(nbodies, cudabodies, RECIP_DT);
 	gpuErr(cudaPeekAtLastError());
 	cudaThreadSynchronize();
-
 	auto scale2Stop = std::chrono::steady_clock::now();
 
+	//Finished Energy
 	auto energy2Start = std::chrono::steady_clock::now();
-
 	type e2 = energy(nbodies, cudabodies);
 	cudaThreadSynchronize();
-
 	auto energy2Stop = std::chrono::steady_clock::now();
 
+	//Calculate timings and print to console
 	auto offsetDiff = offsetStop - offsetStart;
 	auto energyDiff = energyStop - energyStart;
 	auto scaleDiff = scaleStop - scaleStart;
